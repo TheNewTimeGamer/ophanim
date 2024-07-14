@@ -69,16 +69,16 @@ func watch(directory *string, deep bool, action *string, regex *string) {
 		windows.FILE_NOTIFY_CHANGE_SIZE |
 		windows.FILE_NOTIFY_CHANGE_LAST_WRITE
 
+	if deep {
+		fmt.Println("Watching for file changes (deep) in:", *directory)
+	} else {
+		fmt.Println("Watching for file changes (shallow) in:", *directory)
+	}
+
 	for {
 		var buffer [2048]byte
 		var bytesReturned uint32
 		var completionRoutine uintptr
-
-		if deep {
-			fmt.Println("Watching for file changes (deep) in:", *directory)
-		} else {
-			fmt.Println("Watching for file changes (shallow) in:", *directory)
-		}
 
 		err := windows.ReadDirectoryChanges(directoryHandle,
 			&buffer[0],
@@ -92,8 +92,6 @@ func watch(directory *string, deep bool, action *string, regex *string) {
 		if err != nil {
 			panic(err)
 		}
-
-		fmt.Println("Changes detected:")
 
 		pointer := uint32(0)
 
@@ -137,13 +135,9 @@ func performAction(fileChangeEvent FileChangeEvent, action *string) {
 		return
 	}
 
-	fmt.Println(fileChangeEvent.FileName)
-	command := exec.Command("cmd", "/C", *action, fmt.Sprint(fileChangeEvent.EventType), fmt.Sprintf("%q", fileChangeEvent.FileName))
+	command := exec.Command("cmd", "/C", *action, fmt.Sprint(fileChangeEvent.EventType), fileChangeEvent.FileName)
 
-	output, err := command.Output()
-	if err != nil {
-		panic(err)
-	}
+	output, _ := command.CombinedOutput()
 	fmt.Println(string(output))
 
 }
