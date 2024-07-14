@@ -1,1 +1,1 @@
-MsgBox test
+echo hello %0 %1 %2

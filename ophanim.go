@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"regexp"
 	"syscall"
+	"unicode/utf16"
 
 	"golang.org/x/sys/windows"
 )
@@ -101,7 +102,12 @@ func watch(directory *string, deep bool, action *string, regex *string) {
 
 			nextOffset := binary.LittleEndian.Uint32(localBuffer[0:4])
 			fileNameLength := binary.LittleEndian.Uint32(localBuffer[8:12])
-			fileName := string(localBuffer[12 : 12+fileNameLength])
+			fileName, err := decodeUTF16(localBuffer[12 : 12+fileNameLength])
+
+			if err != nil {
+				panic(err)
+			}
+
 			fileChangeEvent := FileChangeEvent{binary.LittleEndian.Uint32(localBuffer[4:8]), fileName}
 
 			if regex != nil {
@@ -131,7 +137,15 @@ func performAction(fileChangeEvent FileChangeEvent, action *string) {
 		return
 	}
 
-	exec.Command(*action, fmt.Sprint(fileChangeEvent.EventType), fileChangeEvent.FileName).Start()
+	fmt.Println(fileChangeEvent.FileName)
+	command := exec.Command("cmd", "/C", *action, fmt.Sprint(fileChangeEvent.EventType), fmt.Sprintf("%q", fileChangeEvent.FileName))
+
+	output, err := command.Output()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(output))
+
 }
 
 func showHelp() {
@@ -143,6 +157,18 @@ func showHelp() {
 	fmt.Println("Deep <?boolean>: Whether only the given directory is checked or also its sub-directories and their files.")
 	fmt.Println("Action <?string>: The command to execute when a change is detected, by default stdout will be used.")
 	fmt.Println("Regex <?string>: The regex that will be matched against the detected FileName before an action is performed.")
+}
+
+func decodeUTF16(b []byte) (string, error) {
+	if len(b)%2 != 0 {
+		return "", fmt.Errorf("invalid UTF-16 byte slice length")
+	}
+	u16s := make([]uint16, len(b)/2)
+	for i := 0; i < len(u16s); i++ {
+		u16s[i] = uint16(b[2*i]) | uint16(b[2*i+1])<<8
+	}
+	runes := utf16.Decode(u16s)
+	return string(runes), nil
 }
 
 type FileChangeEvent struct {
