@@ -2,7 +2,7 @@ Ophanim is a directory and file watcher.
 
 ophanim [directory] [deep] [action] [regex]
 
-Directory <string>: The directory to watch.
+Directory <!string>: The directory to watch.
 
 Deep <?boolean>: Whether only the given directory is checked or also its sub-directories and their files.
 
