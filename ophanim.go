@@ -131,7 +131,7 @@ func performAction(fileChangeEvent FileChangeEvent, action *string) {
 		return
 	}
 
-	exec.Command(*action, fmt.Sprint(fileChangeEvent.EventType), fileChangeEvent.FileName)
+	exec.Command(*action, fmt.Sprint(fileChangeEvent.EventType), fileChangeEvent.FileName).Start()
 }
 
 func showHelp() {
